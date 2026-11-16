@@ -1,97 +1,250 @@
 package com.grandluxury.view;
 
+import com.grandluxury.model.Reservation;
+import com.grandluxury.service.ReservationService;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.util.NoSuchElementException;
 
 public class ReservationPanel extends JPanel {
-    private JTextField txtCheckIn, txtCheckOut;
-    private JSpinner spnMalam;
+    private final ReservationService service;
+    private final JTextField txtGuestId = new JTextField();
+    private final JTextField txtRoomNumber = new JTextField();
+    private final JTextField txtCheckIn = new JTextField();
+    private final JTextField txtCheckOut = new JTextField();
+    private final JTextField txtSearch = new JTextField();
+    private final DefaultTableModel tableModel = new DefaultTableModel(
+            new String[]{"ID RESERVASI", "ID TAMU", "KAMAR", "CHECK-IN", "CHECK-OUT", "STATUS", "TOTAL"},
+            0
+    ) {
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
+    };
+    private final JTable reservationTable = new JTable(tableModel);
+    private final TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
+    private String selectedReservationId;
 
     public ReservationPanel() {
+        this(null);
+    }
+
+    public ReservationPanel(ReservationService service) {
+        this.service = service;
+        if (service == null) {
+            buildPrototypePanel();
+        } else {
+            buildServicePanel();
+        }
+    }
+
+    private void buildServicePanel() {
+        setLayout(new BorderLayout(0, 14));
+        setBackground(Theme.BG_LIGHT);
+        setBorder(new EmptyBorder(20, 24, 20, 24));
+
+        JPanel form = Theme.createCardPanel();
+        form.setLayout(new BorderLayout(0, 10));
+        form.add(new JLabel("<html><b style='font-size:15px;'>Kelola Reservasi</b><br>"
+                + "<span style='color:#64748B;font-size:11px;'>Tanggal menggunakan format YYYY-MM-DD.</span></html>"),
+                BorderLayout.NORTH);
+
+        JPanel fields = new JPanel(new GridLayout(1, 4, 10, 0));
+        fields.setBackground(Color.WHITE);
+        txtGuestId.setText("");
+        txtRoomNumber.setText("");
+        txtCheckIn.setText(LocalDate.now().toString());
+        txtCheckOut.setText(LocalDate.now().plusDays(1).toString());
+        fields.add(wrapField("ID TAMU", txtGuestId));
+        fields.add(wrapField("NOMOR KAMAR", txtRoomNumber));
+        fields.add(wrapField("CHECK-IN", txtCheckIn));
+        fields.add(wrapField("CHECK-OUT", txtCheckOut));
+        form.add(fields, BorderLayout.CENTER);
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        actions.setBackground(Color.WHITE);
+        JButton btnCreate = Theme.createPrimaryButton("Buat Reservasi", Theme.CYAN_ACCENT, Color.WHITE);
+        JButton btnUpdate = Theme.createPrimaryButton("Ubah", Theme.NAVY_DARK, Color.WHITE);
+        JButton btnCancel = Theme.createPrimaryButton("Batalkan", Theme.DANGER_RED, Color.WHITE);
+        JButton btnCheckIn = Theme.createPrimaryButton("Check-In", Theme.NAVY_DARK, Color.WHITE);
+        JButton btnCheckOut = Theme.createPrimaryButton("Check-Out", Theme.TEAL_BADGE, Color.WHITE);
+        btnCreate.addActionListener(e -> runAction(() -> service.createReservation(
+                txtGuestId.getText(), txtRoomNumber.getText(), parseCheckIn(), parseCheckOut()
+        )));
+        btnUpdate.addActionListener(e -> runAction(() -> service.updateReservation(
+                requireSelectedReservation(), txtRoomNumber.getText(), parseCheckIn(), parseCheckOut()
+        )));
+        btnCancel.addActionListener(e -> runAction(() -> service.cancelReservation(requireSelectedReservation())));
+        btnCheckIn.addActionListener(e -> runAction(() -> service.checkIn(requireSelectedReservation())));
+        btnCheckOut.addActionListener(e -> runAction(() -> service.checkOut(requireSelectedReservation())));
+        actions.add(btnCreate);
+        actions.add(btnUpdate);
+        actions.add(btnCancel);
+        actions.add(btnCheckIn);
+        actions.add(btnCheckOut);
+        form.add(actions, BorderLayout.SOUTH);
+
+        JPanel tableCard = Theme.createCardPanel();
+        tableCard.setLayout(new BorderLayout(0, 10));
+        JPanel toolbar = new JPanel(new BorderLayout(8, 0));
+        toolbar.setBackground(Color.WHITE);
+        txtSearch.setToolTipText("Cari ID reservasi, ID tamu, atau nomor kamar");
+        JButton btnSearch = Theme.createPrimaryButton("Cari", Theme.NAVY_DARK, Color.WHITE);
+        btnSearch.addActionListener(e -> filterReservations());
+        txtSearch.addActionListener(e -> filterReservations());
+        toolbar.add(txtSearch, BorderLayout.CENTER);
+        toolbar.add(btnSearch, BorderLayout.EAST);
+
+        reservationTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        reservationTable.setRowSorter(sorter);
+        Theme.styleTable(reservationTable);
+        reservationTable.getSelectionModel().addListSelectionListener(event -> {
+            if (!event.getValueIsAdjusting()) {
+                loadSelectedReservation();
+            }
+        });
+        tableCard.add(toolbar, BorderLayout.NORTH);
+        tableCard.add(new JScrollPane(reservationTable), BorderLayout.CENTER);
+
+        add(form, BorderLayout.NORTH);
+        add(tableCard, BorderLayout.CENTER);
+        refreshReservations();
+    }
+
+    private JPanel wrapField(String label, JComponent component) {
+        JPanel panel = new JPanel(new BorderLayout(0, 4));
+        panel.setBackground(Color.WHITE);
+        JLabel title = new JLabel(label);
+        title.setFont(Theme.FONT_SMALL);
+        title.setForeground(Theme.TEXT_MUTED);
+        panel.add(title, BorderLayout.NORTH);
+        panel.add(component, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private LocalDate parseCheckIn() {
+        return LocalDate.parse(txtCheckIn.getText().trim());
+    }
+
+    private LocalDate parseCheckOut() {
+        return LocalDate.parse(txtCheckOut.getText().trim());
+    }
+
+    private String requireSelectedReservation() {
+        if (selectedReservationId == null) {
+            throw new IllegalStateException("Pilih reservasi pada tabel terlebih dahulu.");
+        }
+        return selectedReservationId;
+    }
+
+    private void runAction(ReservationAction action) {
+        try {
+            action.run();
+            refreshReservations();
+            JOptionPane.showMessageDialog(this, "Aksi reservasi berhasil diproses.");
+        } catch (IOException | IllegalArgumentException | IllegalStateException
+                 | NoSuchElementException | DateTimeException ex) {
+            showError(ex.getMessage());
+        }
+    }
+
+    private void refreshReservations() {
+        tableModel.setRowCount(0);
+        for (Reservation reservation : service.getReservations()) {
+            tableModel.addRow(new Object[]{
+                    reservation.getId(),
+                    reservation.getGuestId(),
+                    reservation.getRoomNumber(),
+                    reservation.getCheckInDate(),
+                    reservation.getCheckOutDate(),
+                    reservation.getStatus(),
+                    formatCurrency(reservation.getTotalCost())
+            });
+        }
+        filterReservations();
+    }
+
+    private void filterReservations() {
+        String query = txtSearch.getText().trim();
+        sorter.setRowFilter(query.isEmpty()
+                ? null
+                : RowFilter.regexFilter("(?i)" + java.util.regex.Pattern.quote(query)));
+    }
+
+    private void loadSelectedReservation() {
+        int viewRow = reservationTable.getSelectedRow();
+        if (viewRow < 0) {
+            selectedReservationId = null;
+            return;
+        }
+        int row = reservationTable.convertRowIndexToModel(viewRow);
+        selectedReservationId = tableModel.getValueAt(row, 0).toString();
+        txtGuestId.setText(tableModel.getValueAt(row, 1).toString());
+        txtRoomNumber.setText(tableModel.getValueAt(row, 2).toString());
+        txtCheckIn.setText(tableModel.getValueAt(row, 3).toString());
+        txtCheckOut.setText(tableModel.getValueAt(row, 4).toString());
+    }
+
+    private String formatCurrency(BigDecimal amount) {
+        return "Rp " + String.format("%,.0f", amount);
+    }
+
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Reservasi", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void buildPrototypePanel() {
         setLayout(new BorderLayout(0, 16));
         setBackground(Theme.BG_LIGHT);
         setBorder(new EmptyBorder(20, 24, 20, 24));
 
-        // 1. Filter Jadwal Menginap
         JPanel filterCard = Theme.createCardPanel();
         filterCard.setLayout(new GridLayout(1, 4, 14, 0));
+        JTextField checkIn = Theme.createStyledTextField("YYYY-MM-DD");
+        checkIn.setText(LocalDate.now().toString());
+        JTextField checkOut = Theme.createStyledTextField("YYYY-MM-DD");
+        checkOut.setText(LocalDate.now().plusDays(1).toString());
+        JSpinner nights = new JSpinner(new SpinnerNumberModel(1, 1, 30, 1));
+        JButton checkButton = Theme.createPrimaryButton("Cek Ketersediaan", Theme.CYAN_ACCENT, Color.WHITE);
+        checkButton.addActionListener(e -> JOptionPane.showMessageDialog(
+                this, "Hubungkan panel ke ReservationService untuk memeriksa ketersediaan."
+        ));
+        filterCard.add(createBox("TANGGAL CHECK-IN", checkIn));
+        filterCard.add(createBox("TANGGAL CHECK-OUT", checkOut));
+        filterCard.add(createBox("DURASI (MALAM)", nights));
+        filterCard.add(createBox("PENCARIAN", checkButton));
 
-        txtCheckIn = Theme.createStyledTextField("2026-11-16");
-        txtCheckIn.setText("2026-11-16");
-        txtCheckOut = Theme.createStyledTextField("2026-11-19");
-        txtCheckOut.setText("2026-11-19");
-        spnMalam = new JSpinner(new SpinnerNumberModel(3, 1, 30, 1));
-
-        JButton btnCek = Theme.createPrimaryButton("🔍 Cek Ketersediaan", Theme.CYAN_ACCENT, Color.WHITE);
-        btnCek.addActionListener(e -> JOptionPane.showMessageDialog(this, "Menampilkan 3 Kategori Kamar Tersedia untuk " + spnMalam.getValue() + " Malam."));
-
-        filterCard.add(createBox("TANGGAL CHECK-IN", txtCheckIn));
-        filterCard.add(createBox("TANGGAL CHECK-OUT", txtCheckOut));
-        filterCard.add(createBox("DURASI (MALAM)", spnMalam));
-        filterCard.add(createBox("PENCARIAN", btnCek));
-
-        // 2. Katalog Kartu Kamar Tersedia (3 Tier OOP: Standard, Deluxe, Suite)
-        JPanel catalogPanel = new JPanel(new GridLayout(3, 1, 0, 14));
-        catalogPanel.setBackground(Theme.BG_LIGHT);
-
-        catalogPanel.add(createRoomOfferCard("STANDARD URBAN", "Standard King Room", "King Bed • High-Speed WiFi • Rain Shower", 750000, "12 Kamar Sisa", Theme.NAVY_DARK));
-        catalogPanel.add(createRoomOfferCard("DELUXE PANORAMA (+30%)", "Deluxe Executive Skyline", "City View • Private Balcony • Breakfast Included", 975000, "8 Kamar Sisa", Theme.CYAN_ACCENT));
-        catalogPanel.add(createRoomOfferCard("SUITE PENTHOUSE (+75%)", "Presidential Suite with Bathtub", "Bathtub Jacuzzi • Lounge Access • 24h Butler", 1312500, "3 Kamar Sisa", Theme.NAVY_DARK));
-
+        JPanel notice = Theme.createCardPanel();
+        notice.setLayout(new BorderLayout());
+        notice.add(new JLabel("<html><b>Integrasi reservasi belum dikonfigurasi.</b><br>"
+                + "Panel ini perlu dibuat dengan ReservationService dan RoomGateway dari modul kamar.</html>"),
+                BorderLayout.CENTER);
         add(filterCard, BorderLayout.NORTH);
-        add(new JScrollPane(catalogPanel), BorderLayout.CENTER);
+        add(notice, BorderLayout.CENTER);
     }
 
-    private JPanel createBox(String title, JComponent comp) {
-        JPanel p = new JPanel(new BorderLayout(0, 6));
-        p.setBackground(Color.WHITE);
-        JLabel l = new JLabel(title);
-        l.setFont(new Font("SansSerif", Font.BOLD, 10));
-        l.setForeground(Theme.TEXT_MUTED);
-        p.add(l, BorderLayout.NORTH);
-        p.add(comp, BorderLayout.CENTER);
-        return p;
+    private JPanel createBox(String title, JComponent component) {
+        JPanel panel = new JPanel(new BorderLayout(0, 6));
+        panel.setBackground(Color.WHITE);
+        JLabel label = new JLabel(title);
+        label.setFont(new Font("SansSerif", Font.BOLD, 10));
+        label.setForeground(Theme.TEXT_MUTED);
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(component, BorderLayout.CENTER);
+        return panel;
     }
 
-    private JPanel createRoomOfferCard(String badge, String roomName, String desc, double rate, String stock, Color btnColor) {
-        JPanel card = Theme.createCardPanel();
-        card.setLayout(new BorderLayout(20, 0));
-
-        JLabel info = new JLabel("<html><span style='color:#0FB5BA;font-size:10px;font-weight:bold;'>" + badge + "</span><br>" +
-                "<b style='font-size:16px;color:#0F172A;'>" + roomName + "</b><br>" +
-                "<span style='color:#64748B;font-size:11px;'>" + desc + "</span></html>");
-
-        JPanel rightAction = new JPanel(new GridLayout(3, 1, 0, 4));
-        rightAction.setBackground(Color.WHITE);
-        JLabel lblStock = new JLabel("● " + stock, SwingConstants.RIGHT);
-        lblStock.setForeground(Theme.TEAL_BADGE);
-        lblStock.setFont(Theme.FONT_SMALL);
-
-        JLabel lblPrice = new JLabel(String.format("Rp %,.0f / malam", rate), SwingConstants.RIGHT);
-        lblPrice.setFont(new Font("SansSerif", Font.BOLD, 16));
-
-        JButton btnBook = Theme.createPrimaryButton("Pilih & Reservasi  →", btnColor, Color.WHITE);
-        btnBook.addActionListener(e -> {
-            int malam = (int) spnMalam.getValue();
-            double total = rate * malam;
-            String namaTamu = JOptionPane.showInputDialog(this, "Masukkan Nama / ID Tamu yang memesan:", "Bpk. Hendra Gunawan");
-            if (namaTamu != null && !namaTamu.trim().isEmpty()) {
-                JOptionPane.showMessageDialog(this,
-                        "Reservasi Berhasil Dibuat!\nTamu: " + namaTamu +
-                        "\nKamar: " + roomName +
-                        "\nDurasi: " + malam + " Malam" +
-                        "\nEstimasi Total: " + String.format("Rp %,.0f", total),
-                        "Konfirmasi Booking", JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
-
-        rightAction.add(lblStock);
-        rightAction.add(lblPrice);
-        rightAction.add(btnBook);
-
-        card.add(info, BorderLayout.CENTER);
-        card.add(rightAction, BorderLayout.EAST);
-        return card;
+    @FunctionalInterface
+    private interface ReservationAction {
+        void run() throws IOException;
     }
 }
