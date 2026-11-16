@@ -23,7 +23,7 @@ public class ReservationPanel extends JPanel {
     private final JTextField txtCheckOut = new JTextField();
     private final JTextField txtSearch = new JTextField();
     private final DefaultTableModel tableModel = new DefaultTableModel(
-            new String[]{"ID RESERVASI", "ID TAMU", "KAMAR", "CHECK-IN", "CHECK-OUT", "STATUS", "TOTAL"},
+            new String[]{"ID RESERVASI", "ID TAMU", "NAMA TAMU", "KAMAR", "CHECK-IN", "CHECK-OUT", "STATUS", "TOTAL"},
             0
     ) {
         @Override
@@ -101,7 +101,7 @@ public class ReservationPanel extends JPanel {
         tableCard.setLayout(new BorderLayout(0, 10));
         JPanel toolbar = new JPanel(new BorderLayout(8, 0));
         toolbar.setBackground(Color.WHITE);
-        txtSearch.setToolTipText("Cari ID reservasi, ID tamu, atau nomor kamar");
+        txtSearch.setToolTipText("Cari ID reservasi, nama tamu, status, atau nomor kamar");
         JButton btnSearch = Theme.createPrimaryButton("Cari", Theme.NAVY_DARK, Color.WHITE);
         btnSearch.addActionListener(e -> filterReservations());
         txtSearch.addActionListener(e -> filterReservations());
@@ -185,6 +185,7 @@ public class ReservationPanel extends JPanel {
             tableModel.addRow(new Object[]{
                     reservation.getId(),
                     reservation.getGuestId(),
+                    service.findGuest(reservation.getGuestId()).getName(),
                     reservation.getRoomNumber(),
                     reservation.getCheckInDate(),
                     reservation.getCheckOutDate(),
@@ -211,9 +212,9 @@ public class ReservationPanel extends JPanel {
         int row = reservationTable.convertRowIndexToModel(viewRow);
         selectedReservationId = tableModel.getValueAt(row, 0).toString();
         txtGuestId.setText(tableModel.getValueAt(row, 1).toString());
-        txtRoomNumber.setText(tableModel.getValueAt(row, 2).toString());
-        txtCheckIn.setText(tableModel.getValueAt(row, 3).toString());
-        txtCheckOut.setText(tableModel.getValueAt(row, 4).toString());
+        txtRoomNumber.setText(tableModel.getValueAt(row, 3).toString());
+        txtCheckIn.setText(tableModel.getValueAt(row, 4).toString());
+        txtCheckOut.setText(tableModel.getValueAt(row, 5).toString());
     }
 
     private String formatCurrency(BigDecimal amount) {

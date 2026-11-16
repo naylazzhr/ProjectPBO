@@ -74,7 +74,7 @@ public class MainFrame extends JFrame {
         contentPanel.add(new DashboardPanel(this::switchPage), "DASHBOARD");
         roomPanel = new RoomPanel(roomRepository);
         contentPanel.add(roomPanel, "KAMAR");
-        contentPanel.add(new GuestPanel(guestRepository), "TAMU");
+        contentPanel.add(new GuestPanel(guestRepository, reservationService), "TAMU");
         contentPanel.add(new ReservationPanel(reservationService), "RESERVASI");
         contentPanel.add(new CheckoutPanel(), "CHECKOUT");
 

@@ -2,6 +2,7 @@ package com.grandluxury.view;
 
 import com.grandluxury.model.Guest;
 import com.grandluxury.repository.GuestRepository;
+import com.grandluxury.service.ReservationService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -15,6 +16,7 @@ import java.util.UUID;
 
 public class GuestPanel extends JPanel {
     private final GuestRepository repository;
+    private final ReservationService reservationService;
     private final DefaultTableModel guestModel;
     private final JTable guestTable;
     private final TableRowSorter<DefaultTableModel> sorter;
@@ -27,11 +29,16 @@ public class GuestPanel extends JPanel {
     private String selectedGuestId;
 
     public GuestPanel() {
-        this(new GuestRepository());
+        this(new GuestRepository(), null);
     }
 
     public GuestPanel(GuestRepository repository) {
+        this(repository, null);
+    }
+
+    public GuestPanel(GuestRepository repository, ReservationService reservationService) {
         this.repository = Objects.requireNonNull(repository);
+        this.reservationService = reservationService;
         setLayout(new BorderLayout(0, 16));
         setBackground(Theme.BG_LIGHT);
         setBorder(new EmptyBorder(20, 24, 20, 24));
@@ -161,6 +168,11 @@ public class GuestPanel extends JPanel {
     private void deleteGuest() {
         if (selectedGuestId == null) {
             showError("Pilih tamu yang akan dihapus terlebih dahulu.");
+            return;
+        }
+        if (reservationService != null
+                && !reservationService.findReservationsByGuest(selectedGuestId).isEmpty()) {
+            showError("Data tamu memiliki riwayat reservasi dan tidak dapat dihapus.");
             return;
         }
         int answer = JOptionPane.showConfirmDialog(this, "Hapus data tamu terpilih?", "Konfirmasi", JOptionPane.YES_NO_OPTION);
