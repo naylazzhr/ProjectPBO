@@ -1,15 +1,24 @@
 package com.grandluxury.view;
 
+import com.grandluxury.repository.GuestRepository;
+import com.grandluxury.repository.ReservationRepository;
+import com.grandluxury.service.ReservationService;
+import com.grandluxury.service.RoomRepositoryGateway;
+import hotel.repository.RoomRepository;
+import hotel.util.HotelException;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import java.awt.*;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class MainFrame extends JFrame {
     private CardLayout cardLayout;
     private JPanel contentPanel;
+    private RoomPanel roomPanel;
     private Map<String, JButton> menuButtons = new LinkedHashMap<>();
     private String currentUser;
     private String currentRole;
@@ -17,6 +26,28 @@ public class MainFrame extends JFrame {
     public MainFrame(String user, String role) {
         this.currentUser = user;
         this.currentRole = role;
+
+        GuestRepository guestRepository = new GuestRepository();
+        ReservationRepository reservationRepository = new ReservationRepository();
+        RoomRepository roomRepository = new RoomRepository();
+        try {
+            guestRepository.load();
+            reservationRepository.load();
+            roomRepository.muat();
+        } catch (IOException | HotelException ex) {
+            JOptionPane.showMessageDialog(
+                    null,
+                    "Data aplikasi gagal dimuat: " + ex.getMessage(),
+                    "Kesalahan Data",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            throw new IllegalStateException("Data aplikasi gagal dimuat.", ex);
+        }
+        ReservationService reservationService = new ReservationService(
+                guestRepository,
+                reservationRepository,
+                new RoomRepositoryGateway(roomRepository)
+        );
 
         setTitle("GrandLuxury Hotel & Residences - Sistem Reservasi");
         setSize(1280, 800);
@@ -41,9 +72,10 @@ public class MainFrame extends JFrame {
 
         // Daftarkan 5 Panel Utama Sesuai Prototype
         contentPanel.add(new DashboardPanel(this::switchPage), "DASHBOARD");
-        contentPanel.add(new RoomPanel(), "KAMAR");
-        contentPanel.add(new GuestPanel(), "TAMU");
-        contentPanel.add(new ReservationPanel(), "RESERVASI");
+        roomPanel = new RoomPanel(roomRepository);
+        contentPanel.add(roomPanel, "KAMAR");
+        contentPanel.add(new GuestPanel(guestRepository), "TAMU");
+        contentPanel.add(new ReservationPanel(reservationService), "RESERVASI");
         contentPanel.add(new CheckoutPanel(), "CHECKOUT");
 
         rightWrapper.add(contentPanel, BorderLayout.CENTER);
@@ -168,6 +200,9 @@ public class MainFrame extends JFrame {
 
     public void switchPage(String pageKey) {
         cardLayout.show(contentPanel, pageKey);
+        if ("KAMAR".equals(pageKey) && roomPanel != null) {
+            roomPanel.refreshTable();
+        }
         for (Map.Entry<String, JButton> entry : menuButtons.entrySet()) {
             JButton btn = entry.getValue();
             if (entry.getKey().equals(pageKey)) {

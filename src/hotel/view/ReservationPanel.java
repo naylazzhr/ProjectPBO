@@ -2,6 +2,7 @@ package com.grandluxury.view;
 
 import com.grandluxury.model.Reservation;
 import com.grandluxury.service.ReservationService;
+import hotel.util.HotelException;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -77,6 +78,7 @@ public class ReservationPanel extends JPanel {
         JButton btnCancel = Theme.createPrimaryButton("Batalkan", Theme.DANGER_RED, Color.WHITE);
         JButton btnCheckIn = Theme.createPrimaryButton("Check-In", Theme.NAVY_DARK, Color.WHITE);
         JButton btnCheckOut = Theme.createPrimaryButton("Check-Out", Theme.TEAL_BADGE, Color.WHITE);
+        JButton btnCheckAvailability = Theme.createPrimaryButton("Cek Kamar", Theme.CYAN_ACCENT, Color.WHITE);
         btnCreate.addActionListener(e -> runAction(() -> service.createReservation(
                 txtGuestId.getText(), txtRoomNumber.getText(), parseCheckIn(), parseCheckOut()
         )));
@@ -86,11 +88,13 @@ public class ReservationPanel extends JPanel {
         btnCancel.addActionListener(e -> runAction(() -> service.cancelReservation(requireSelectedReservation())));
         btnCheckIn.addActionListener(e -> runAction(() -> service.checkIn(requireSelectedReservation())));
         btnCheckOut.addActionListener(e -> runAction(() -> service.checkOut(requireSelectedReservation())));
+        btnCheckAvailability.addActionListener(e -> checkAvailableRooms());
         actions.add(btnCreate);
         actions.add(btnUpdate);
         actions.add(btnCancel);
         actions.add(btnCheckIn);
         actions.add(btnCheckOut);
+        actions.add(btnCheckAvailability);
         form.add(actions, BorderLayout.SOUTH);
 
         JPanel tableCard = Theme.createCardPanel();
@@ -152,7 +156,25 @@ public class ReservationPanel extends JPanel {
             refreshReservations();
             JOptionPane.showMessageDialog(this, "Aksi reservasi berhasil diproses.");
         } catch (IOException | IllegalArgumentException | IllegalStateException
-                 | NoSuchElementException | DateTimeException ex) {
+                 | NoSuchElementException | DateTimeException | HotelException ex) {
+            showError(ex.getMessage());
+        }
+    }
+
+    private void checkAvailableRooms() {
+        try {
+            java.util.List<String> rooms = service.findAvailableRooms(parseCheckIn(), parseCheckOut());
+            if (rooms.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Tidak ada kamar tersedia pada rentang tanggal tersebut.");
+                return;
+            }
+            String availableRooms = String.join(", ", rooms);
+            txtRoomNumber.setText(rooms.get(0));
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Kamar tersedia: " + availableRooms + "\nNomor kamar pertama sudah dipilih pada form."
+            );
+        } catch (IOException | IllegalArgumentException | DateTimeException | HotelException ex) {
             showError(ex.getMessage());
         }
     }

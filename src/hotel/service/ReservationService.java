@@ -16,6 +16,8 @@ import java.util.UUID;
 
 public class ReservationService {
     public interface RoomGateway {
+        List<String> getRoomNumbers();
+
         boolean isOperational(String roomNumber) throws IOException;
 
         BigDecimal getNightlyRate(String roomNumber) throws IOException;
@@ -142,6 +144,17 @@ public class ReservationService {
         return reservationRepository.findAll();
     }
 
+    public List<String> findAvailableRooms(LocalDate checkInDate, LocalDate checkOutDate) throws IOException {
+        validateStayDates(checkInDate, checkOutDate);
+        List<String> available = new java.util.ArrayList<>();
+        for (String roomNumber : roomGateway.getRoomNumbers()) {
+            if (isRoomAvailable(roomNumber, checkInDate, checkOutDate)) {
+                available.add(roomNumber);
+            }
+        }
+        return available;
+    }
+
     public List<Reservation> findReservationsByGuest(String guestId) {
         return reservationRepository.findByGuestId(guestId);
     }
@@ -189,6 +202,7 @@ public class ReservationService {
         if (occupied) {
             roomGateway.markOccupied(roomNumber);
         } else if (reserved) {
+            roomGateway.markAvailable(roomNumber);
             roomGateway.markReserved(roomNumber);
         } else {
             roomGateway.markAvailable(roomNumber);

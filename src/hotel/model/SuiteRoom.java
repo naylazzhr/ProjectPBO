@@ -5,8 +5,7 @@ package hotel.model;
  */
 public class SuiteRoom extends Room {
 
-    // TODO: sepakati persentasenya dengan tim
-    private static final double FAKTOR_TARIF = 1.60;
+    private static final double FAKTOR_TARIF = 1.75;
 
     public SuiteRoom(String nomor, int lantai, double hargaDasar, RoomStatus status) {
         super(nomor, lantai, hargaDasar, status);

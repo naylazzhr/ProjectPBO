@@ -6,5 +6,6 @@ package hotel.model;
 public enum RoomStatus {
     AVAILABLE,   // kosong, bisa dipesan
     RESERVED,    // sudah dipesan, belum check-in
-    OCCUPIED     // sedang dihuni (sudah check-in)
+    OCCUPIED,    // sedang dihuni (sudah check-in)
+    MAINTENANCE  // tidak dapat dipesan
 }

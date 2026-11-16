@@ -47,7 +47,7 @@ public abstract class Room {
 
     // ---------- Setter dengan validasi ----------
     public void setHargaDasar(double hargaDasar) {
-        if (hargaDasar <= 0) {
+        if (!Double.isFinite(hargaDasar) || hargaDasar <= 0) {
             throw new InvalidInputException("Harga dasar harus lebih dari 0");
         }
         this.hargaDasar = hargaDasar;
@@ -89,6 +89,22 @@ public abstract class Room {
         if (status != RoomStatus.OCCUPIED) {
             throw new RoomNotAvailableException(
                     "Kamar " + nomor + " tidak bisa check-out, status: " + status);
+        }
+        status = RoomStatus.AVAILABLE;
+    }
+
+    public void mulaiPerawatan() {
+        if (status != RoomStatus.AVAILABLE) {
+            throw new RoomNotAvailableException(
+                    "Kamar " + nomor + " hanya bisa masuk perawatan jika tersedia.");
+        }
+        status = RoomStatus.MAINTENANCE;
+    }
+
+    public void selesaiPerawatan() {
+        if (status != RoomStatus.MAINTENANCE) {
+            throw new RoomNotAvailableException(
+                    "Kamar " + nomor + " tidak sedang dalam perawatan.");
         }
         status = RoomStatus.AVAILABLE;
     }
