@@ -1,4 +1,4 @@
-package com.grandluxury.model;
+package hotel.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

@@ -1,6 +1,6 @@
-package com.grandluxury.service;
+package hotel.service;
 
-import com.grandluxury.service.ReservationService.RoomGateway;
+import hotel.service.ReservationService.RoomGateway;
 import hotel.model.Room;
 import hotel.model.RoomStatus;
 import hotel.repository.RoomRepository;

@@ -23,8 +23,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
-public class RoomRepository implements Repository<Room> {
+public class RoomRepository implements Repository<Room, String> {
     private final Path file;
     private final Map<String, Room> rooms = new LinkedHashMap<>();
 
@@ -36,7 +37,6 @@ public class RoomRepository implements Repository<Room> {
         this.file = Objects.requireNonNull(file);
     }
 
-    @Override
     public void tambah(Room room) {
         Objects.requireNonNull(room, "Data kamar tidak boleh null.");
         validateCsvValue(room.getNomor());
@@ -49,7 +49,6 @@ public class RoomRepository implements Repository<Room> {
         replaceContents(updated);
     }
 
-    @Override
     public void ubah(Room room) {
         Objects.requireNonNull(room, "Data kamar tidak boleh null.");
         validateCsvValue(room.getNomor());
@@ -62,7 +61,6 @@ public class RoomRepository implements Repository<Room> {
         replaceContents(updated);
     }
 
-    @Override
     public void hapus(String id) {
         if (!rooms.containsKey(id)) {
             throw new DataNotFoundException("Kamar tidak ditemukan: " + id);
@@ -73,7 +71,6 @@ public class RoomRepository implements Repository<Room> {
         replaceContents(updated);
     }
 
-    @Override
     public Room cari(String id) {
         Room room = rooms.get(id);
         if (room == null) {
@@ -82,17 +79,14 @@ public class RoomRepository implements Repository<Room> {
         return room;
     }
 
-    @Override
     public List<Room> tampil() {
         return new ArrayList<>(rooms.values());
     }
 
-    @Override
     public void simpan() {
         write(rooms);
     }
 
-    @Override
     public void muat() {
         if (!Files.exists(file)) {
             rooms.clear();
@@ -130,6 +124,45 @@ public class RoomRepository implements Repository<Room> {
             throw new HotelException("Gagal memuat data kamar dari " + file + ".", ex);
         }
         replaceContents(loaded);
+    }
+
+    @Override
+    public void add(Room room) {
+        tambah(room);
+    }
+
+    @Override
+    public void update(Room room) {
+        ubah(room);
+    }
+
+    @Override
+    public void delete(String id) {
+        hapus(id);
+    }
+
+    @Override
+    public Optional<Room> findById(String id) {
+        try {
+            return Optional.of(cari(id));
+        } catch (DataNotFoundException ex) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public List<Room> findAll() {
+        return tampil();
+    }
+
+    @Override
+    public void save() {
+        simpan();
+    }
+
+    @Override
+    public void load() {
+        muat();
     }
 
     private void write(Map<String, Room> source) {

@@ -1,7 +1,7 @@
-package com.grandluxury.repository;
+package hotel.repository;
 
-import com.grandluxury.model.Reservation;
-import com.grandluxury.model.ReservationStatus;
+import hotel.model.Reservation;
+import hotel.model.ReservationStatus;
 
 import java.io.IOException;
 import java.math.BigDecimal;

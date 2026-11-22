@@ -1,10 +1,10 @@
-package com.grandluxury.service;
+package hotel.service;
 
-import com.grandluxury.model.Guest;
-import com.grandluxury.model.Reservation;
-import com.grandluxury.model.ReservationStatus;
-import com.grandluxury.repository.GuestRepository;
-import com.grandluxury.repository.ReservationRepository;
+import hotel.model.Guest;
+import hotel.model.Reservation;
+import hotel.model.ReservationStatus;
+import hotel.repository.GuestRepository;
+import hotel.repository.ReservationRepository;
 
 import java.io.IOException;
 import java.math.BigDecimal;

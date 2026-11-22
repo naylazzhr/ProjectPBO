@@ -1,6 +1,6 @@
-package com.grandluxury.repository;
+package hotel.repository;
 
-import com.grandluxury.model.Guest;
+import hotel.model.Guest;
 
 import java.io.IOException;
 import java.nio.file.Path;
