@@ -1,4 +1,4 @@
-package com.grandluxury.repository;
+package hotel.repository;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

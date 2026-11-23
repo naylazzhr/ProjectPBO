@@ -1,4 +1,4 @@
-package com.grandluxury.model;
+package hotel.model;
 
 public enum ReservationStatus {
     BOOKED,

@@ -1,33 +1,21 @@
 package hotel.repository;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
-/**
- * Kontrak generik untuk semua repository (Room, User, Guest, dst).
- * Konsep OOP: interface + generics.
- *
- * @param <T> tipe entitas yang disimpan (misalnya Room)
- */
-public interface Repository<T> {
+public interface Repository<T, ID> {
+    void add(T item) throws IOException;
 
-    /** Menambah data baru. Gagal (InvalidInputException) kalau ID sudah ada. */
-    void tambah(T item);
+    void update(T item) throws IOException;
 
-    /** Mengubah data yang sudah ada. Gagal (DataNotFoundException) kalau tidak ada. */
-    void ubah(T item);
+    void delete(ID id) throws IOException;
 
-    /** Menghapus data berdasarkan ID. Gagal (DataNotFoundException) kalau tidak ada. */
-    void hapus(String id);
+    Optional<T> findById(ID id);
 
-    /** Mencari data berdasarkan ID. Gagal (DataNotFoundException) kalau tidak ada. */
-    T cari(String id);
+    List<T> findAll();
 
-    /** Mengambil semua data. */
-    List<T> tampil();
+    void save() throws IOException;
 
-    /** Menulis data di memori ke file CSV. */
-    void simpan();
-
-    /** Membaca data dari file CSV ke memori. */
-    void muat();
+    void load() throws IOException;
 }
